@@ -1,0 +1,91 @@
+## ginked from https://github.com/pkg/json 1/15/23
+##
+## agreeing with Mr. Cheney on disabled linters
+## commented ones are mostly not generating hits
+## Todo: try out on more code and settle dust
+
+linters:
+  enable-all: true
+  disable:
+    - recvcheck # bubbletea is into this, pct
+    - asasalint
+    #- bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop ## borken? in any case bubbletea..
+    ##- deadcode # replaced with unused
+    - depguard # too annoying
+    #- dupl
+    - dupword
+    - err113
+    #- errcheck
+    #- errchkjson
+    - errname # really?
+    #- errorlint
+    ##- exhaustivestruct # Replaced by exhaustruct.
+    - exhaustruct
+    - exhaustive # too annoying, too hard to disable with comments
+    - fatcontext # not compat with ginkgo, I think, pct
+    - forbidigo # want printf for thisn
+    - funlen ## waytoo annoying
+    - gci
+    - gochecknoglobals
+    - gochecknoinits ## comeon!, pct
+    #- gocognit
+    - goconst
+    - gocritic
+    #- gocyclo
+    - godot
+    - godox ## want Todo right now
+    - gofumpt
+    ##- golint # Replaced by revive.
+    - mnd
+    ##- ifshort
+    - inamedparam # too opinionated
+    ##- interfacer # deprecated
+    - ireturn ## really
+    - lll
+    #- maintidx
+    ##- maligned # Replaced by govet
+    - musttag # flaky, fires on structs which aren't JSON marshalled
+    - nakedret # pct
+    #- nilnil
+    - nlreturn
+    - noctx # like totally niche, pct
+    - nonamedreturns
+    ##- nosnakecase # Replaced by revive, pct
+    - paralleltest
+    - prealloc # not to performant today, pct
+    ##- scopelint # Replaced by exportloopref.
+    ##- structcheck # replaced with unused
+    - tagliatelle
+    - tagalign # too fussy
+    - testpackage # too annoying
+    - tenv # blah
+    #- thelper
+    - usestdlibvars
+    ##- varcheck # Replaced by unused.
+    - varnamelen
+    - whitespace
+    - wrapcheck
+    - wsl
+
+linters-settings:
+  #gofumpt:
+  #module-path: github.com/pkg/json
+  revive:
+    rules:
+      - name: var-naming
+        disabled: true
+  stylecheck:
+    checks: ["all", "-ST1003", "-ST1012"]
+  unparam:
+    check-exported: false
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
