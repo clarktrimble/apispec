@@ -10,6 +10,39 @@ Todo: seriously consider not doing this sort of thing at runtime
 Todo: fresh stoplight or maybe an alternative
 Todo: cleanup the rest of this doc
 
+## Stoplight Specifics
+
+### Tags
+
+Yaml might have something like:
+```
+tags:
+  - name: enrichment
+    description: Threat enrichment cache management
+paths:
+  /enrichment/cache:
+    get:
+      summary: Get enrichment cache
+      description: Return the current threat enrichment cache (category and rule lookups)
+      operationId: getEnrichmentCache
+      tags:
+        - enrichment
+      responses:
+        ...
+```
+But Stoplight ignores the tag desc and the tag in the path is enough,
+so we drop the tags section altogether.
+
+### Info
+
+Stoplight ignores contact and license so we've dropped them.
+```
+  contact:
+    name: Bastille Integration Team
+  license:
+    name: Proprietary
+```
+
 ## Approach
 
 OpenAPI specs for our services are assembled from fragments contributed by

@@ -1,0 +1,39 @@
+tags:
+  - name: widgets
+    description: Widget operations
+
+paths:
+  /widgets:
+    get:
+      summary: List widgets
+      operationId: listWidgets
+      tags:
+        - widgets
+      responses:
+        '200':
+          description: Widgets retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Widget'
+  /widgets/{id}:
+    get:
+      summary: Get widget
+      operationId: getWidget
+      tags:
+        - widgets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Widget retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
