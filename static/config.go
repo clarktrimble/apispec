@@ -10,6 +10,7 @@ type Config struct {
 
 // TypeRef identifies a type to generate a schema from.
 type TypeRef struct {
+	Name    string `yaml:"name"`
 	Package string `yaml:"package"`
 	Type    string `yaml:"type"`
 }

@@ -28,10 +28,11 @@ func Generate(cfgPath, outPath string) error {
 		OpenAPI: apispec.OpenAPIVersion,
 		Info: apispec.Info{
 			Title:       cfg.Title,
+			Version:     "${RELEASE}",
 			Description: strings.Join(cfg.Description, "\n\n"),
 		},
 		Servers: []apispec.Server{
-			{URL: "${URL}", Description: "API server"},
+			{URL: "${PUBLISHED_URL}", Description: "API server"},
 		},
 	}
 
@@ -48,6 +49,7 @@ func Generate(cfgPath, outPath string) error {
 		if err != nil {
 			return err
 		}
+		// Todo: detect duplicate paths (runtime mergePaths errors on dupes)
 		doc.Paths = append(doc.Paths, paths...)
 		doc.Tags = append(doc.Tags, tags...)
 
@@ -71,7 +73,18 @@ func Generate(cfgPath, outPath string) error {
 		if obj == nil {
 			return errors.Errorf("config type %s not found in %s", cfg.Config.Type, cfg.Config.Package)
 		}
-		schemas[cfg.Config.Type] = configSchemaFrom(obj.Type())
+		name := cfg.Config.Name
+		if name == "" {
+			name = cfg.Config.Type
+		}
+		schemas[name] = configSchemaFrom(obj.Type())
+	}
+
+	schemas["Error"] = &apispec.Schema{
+		Type: "object",
+		Properties: apispec.Properties{
+			{Name: "error", Schema: &apispec.Schema{Type: "string", Description: "Error message"}},
+		},
 	}
 
 	doc.Components = &apispec.Components{Schemas: schemas}

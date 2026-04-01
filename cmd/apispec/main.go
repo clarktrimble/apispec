@@ -15,6 +15,11 @@ import (
 	"github.com/clarktrimble/apispec/static"
 )
 
+var (
+	version string
+	release string
+)
+
 func main() {
 
 	genCmd := flag.NewFlagSet("gen", flag.ExitOnError)
@@ -22,7 +27,7 @@ func main() {
 	outPath := genCmd.String("o", "openapi.yaml", "output file path")
 
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: apispec gen [-c config.yaml] [-o openapi.yaml]")
+		fmt.Fprintln(os.Stderr, "usage: apispec <gen|version> [flags]")
 		os.Exit(1)
 	}
 
@@ -36,6 +41,8 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("wrote %s\n", *outPath)
+	case "version":
+		fmt.Printf("apispec %s (release: %s)\n", version, release)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n", os.Args[1])
 		os.Exit(1)
