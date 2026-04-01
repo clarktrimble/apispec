@@ -73,6 +73,15 @@ func (doc *Document) Merge(specFuncs ...SpecFunc) error {
 	return nil
 }
 
+// MergeConfig generates a config schema from a struct and adds it to components.
+func (doc *Document) MergeConfig(name string, cfg any) {
+
+	if doc.Components == nil {
+		doc.Components = &Components{Schemas: map[string]*Schema{}}
+	}
+	doc.Components.Schemas[name] = ConfigSchema(cfg)
+}
+
 // Marshal renders the Document as JSON bytes.
 func (doc Document) Marshal() ([]byte, error) {
 	data, err := json.MarshalIndent(doc, "", "  ")
