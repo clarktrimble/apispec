@@ -1,0 +1,492 @@
+openapi: 3.0.3
+info:
+    title: Bastille Fwd Integration API
+    version: _unreleased
+    description: |-
+        Fwd forwards BFC webhook events to destinations.
+
+        This instance (fwd-objsto) ships events to object storage. The service receives webhook events from Fusion Center, buffers them, and periodically writes batches to S3-compatible storage as JSON files.
+servers:
+    - url: http://localhost:3031
+      description: API server
+paths:
+    /enrichment/cache:
+        get:
+            summary: Get enrichment cache
+            description: Return the current threat enrichment cache (category and rule lookups)
+            operationId: getEnrichmentCache
+            tags:
+                - enrichment
+            responses:
+                200:
+                    description: Enrichment cache retrieved
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    cache:
+                                        $ref: '#/components/schemas/EnrichmentCache'
+        post:
+            summary: Refresh enrichment cache
+            description: Reload threat categories and policy rules from Adam
+            operationId: refreshEnrichmentCache
+            tags:
+                - enrichment
+            responses:
+                200:
+                    description: Cache refreshed
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: string
+                                        example: ok
+                422:
+                    description: Failed to refresh cache
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+    /fc-events:
+        post:
+            summary: Receive webhook events
+            description: |
+                Receive and buffer webhook events from Fusion Center. Events are buffered
+                and processed periodically based on configured interval.
+            operationId: receiveWebhookEvents
+            tags:
+                - webhooks
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items:
+                                $ref: '#/components/schemas/Event'
+            responses:
+                200:
+                    description: Events received and buffered successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: string
+                                        example: ok
+                400:
+                    description: Invalid event format
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                500:
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+    /fc-events/flush:
+        post:
+            summary: Flush event buffer
+            description: Force immediate processing of all buffered webhook events
+            operationId: flushWebhookEvents
+            tags:
+                - webhooks
+            responses:
+                200:
+                    description: Events processed successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: string
+                                        example: ok
+    /fc-events/dump:
+        get:
+            summary: Dump event buffer
+            description: Drain buffer and return all buffered events (for debugging)
+            operationId: dumpWebhookEvents
+            tags:
+                - webhooks
+            responses:
+                200:
+                    description: Buffered events returned successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/Event'
+    /fc-events/stats:
+        get:
+            summary: Get webhook event stats
+            description: Return counts of buffered, rejected, and ignored events
+            operationId: getWebhookStats
+            tags:
+                - webhooks
+            responses:
+                200:
+                    description: Event stats retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    webhook_events:
+                                        type: object
+                                        properties:
+                                            buffered:
+                                                type: integer
+                                                description: Total events buffered
+                                                example: 1234
+                                            rejected:
+                                                type: integer
+                                                description: Total events rejected (buffer full)
+                                                example: 0
+                                            ignored:
+                                                type: integer
+                                                description: Total events ignored (wrong type or connection check)
+                                                example: 56
+    /config:
+        get:
+            summary: Get service configuration
+            description: Return startup service configuration
+            operationId: getConfig
+            tags:
+                - operations
+            responses:
+                200:
+                    description: Configuration retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceConfig'
+    /monitor:
+        get:
+            summary: Health check
+            description: Health check endpoint (returns "ok")
+            operationId: healthCheck
+            tags:
+                - operations
+            responses:
+                200:
+                    description: Service is healthy
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: string
+                                        example: ok
+    /log:
+        get:
+            summary: Get log level
+            description: Get current log level
+            operationId: getLogLevel
+            tags:
+                - operations
+            responses:
+                200:
+                    description: Log level retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    level:
+                                        type: string
+                                        example: info
+    /log/{level}:
+        post:
+            summary: Set log level
+            description: Dynamically set log level at runtime
+            operationId: setLogLevel
+            tags:
+                - operations
+            parameters:
+                - name: level
+                  in: path
+                  required: true
+                  description: Log level to set
+                  schema:
+                    type: string
+                    enum:
+                        - trace
+                        - debug
+                        - info
+                  example: debug
+            responses:
+                200:
+                    description: Log level updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: string
+                                        example: ok
+    /stats:
+        get:
+            summary: Get service stats
+            description: |
+                Collect and return service metrics. Returns JSON by default,
+                or Prometheus exposition format when Accept: text/plain is set.
+            operationId: getStats
+            tags:
+                - operations
+            responses:
+                200:
+                    description: Stats retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    stats:
+                                        type: object
+                                        properties:
+                                            labels:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        key:
+                                                            type: string
+                                                            example: app_id
+                                                        val:
+                                                            type: string
+                                                            example: fwd-objsto
+                                            groups:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        name:
+                                                            type: string
+                                                            example: runtime
+                                                        stamp:
+                                                            type: string
+                                                            format: date-time
+                                                        labels:
+                                                            type: array
+                                                            items:
+                                                                type: object
+                                                                properties:
+                                                                    key:
+                                                                        type: string
+                                                                    val:
+                                                                        type: string
+                                                        metrics:
+                                                            type: array
+                                                            items:
+                                                                type: object
+                                                                properties:
+                                                                    name:
+                                                                        type: string
+                                                                        example: goroutines
+                                                                    desc:
+                                                                        type: string
+                                                                        example: number of goroutines
+                                                                    unit:
+                                                                        type: string
+                                                                        example: count
+                                                                    type:
+                                                                        type: string
+                                                                        example: gauge
+                                                                    points:
+                                                                        type: array
+                                                                        items:
+                                                                            type: object
+                                                                            properties:
+                                                                                labels:
+                                                                                    type: array
+                                                                                    items:
+                                                                                        type: object
+                                                                                        properties:
+                                                                                            key:
+                                                                                                type: string
+                                                                                            val:
+                                                                                                type: string
+                                                                                value:
+                                                                                    type: number
+                                                                                    example: 7
+                        text/plain:
+                            schema:
+                                type: string
+                                description: Prometheus exposition format
+                                example: |
+                                    # HELP runtime_goroutines number of goroutines
+                                    # TYPE runtime_goroutines gauge
+                                    runtime_goroutines{app_id="fwd-objsto"} 7
+components:
+    schemas:
+        EnrichmentCache:
+            type: object
+            properties:
+                categories:
+                    type: object
+                    description: threat category id to name
+                    additionalProperties:
+                        type: string
+                rules:
+                    type: object
+                    description: policy rule id to policy name
+                    additionalProperties:
+                        type: string
+            required:
+                - categories
+                - rules
+        Error:
+            type: object
+            properties:
+                error:
+                    type: string
+                    description: Error message
+        Event:
+            type: object
+            description: Webhook event from Fusion Center or Adam
+            properties:
+                id:
+                    type: string
+                event_type:
+                    type: string
+                    description: Type of event
+                    example: observations
+                webhook_name:
+                    type: string
+                    description: Name of webhook that generated the event
+                    example: tag-calypso
+                remote:
+                    type: string
+                    description: Remote address of the webhook source
+                    example: 192.168.1.100
+                payload:
+                    type: object
+                    description: Event payload (structure depends on event_type)
+            required:
+                - event_type
+                - payload
+        ServiceConfig:
+            type: object
+            properties:
+                url:
+                    type: string
+                    description: URL in API docs
+                    example: http://localhost:3031
+                logger:
+                    type: object
+                    properties:
+                        max_len:
+                            type: integer
+                            description: maximum length that will be logged for any field
+                            example: "999"
+                        enable_debug:
+                            type: boolean
+                            description: log debug messages
+                            example: "false"
+                        enable_trace:
+                            type: boolean
+                            description: log trace messages
+                            example: "false"
+                s3:
+                    type: object
+                    properties:
+                        region:
+                            type: string
+                            description: provider region
+                        scheme:
+                            type: string
+                            description: http or https
+                            example: https
+                        host:
+                            type: string
+                            description: endpoint hostname
+                        bucket:
+                            type: string
+                            description: bucket name
+                        access_key:
+                            type: string
+                            description: credential identifier
+                        secret_key:
+                            type: string
+                            description: credential secret or path to file
+                    required:
+                        - region
+                        - host
+                        - bucket
+                        - access_key
+                        - secret_key
+                s3_timeout:
+                    type: string
+                    description: objectstore client timeout
+                    example: 30s
+                event_sender:
+                    type: object
+                    properties:
+                        object_name:
+                            type: string
+                            description: object naming template
+                            example: events_{ts}_{rand}.ndjson
+                svc:
+                    type: object
+                    properties:
+                        include_webhook:
+                            type: boolean
+                            description: include webhook name
+                            example: "false"
+                        include_remote:
+                            type: boolean
+                            description: include event sender ip
+                            example: "false"
+                        include_raw:
+                            type: boolean
+                            description: include original event
+                            example: "false"
+                        dry_run:
+                            type: boolean
+                            description: skip sending downstream
+                            example: "false"
+                        customer:
+                            type: string
+                            description: customer-specific formatting
+                webhook:
+                    type: object
+                    properties:
+                        interval:
+                            type: string
+                            description: period to process buffered events
+                            example: 60s
+                        buffer_size:
+                            type: integer
+                            description: size of event buffer
+                            example: "999"
+                        buffer_types:
+                            type: array
+                            description: event types to buffer
+                            items:
+                                type: string
+                            example: observations
+                http_server:
+                    type: object
+                    properties:
+                        host:
+                            type: string
+                            description: hostname or ip for which to bind
+                        port:
+                            type: integer
+                            description: port on which to listen
+                        timeout:
+                            type: string
+                            description: characteristic timeout
+                            example: 10s
+                    required:
+                        - port

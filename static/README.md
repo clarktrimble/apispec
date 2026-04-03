@@ -31,6 +31,8 @@ specs:
   - package: github.com/clarktrimble/delish/boiler
 ```
 
+Touch openapi.yaml in cmd directory too!
+
 Generate from the repo root:
 ```
 apispec gen -c cmd/myservice/apispec.yaml -o cmd/myservice/openapi.yaml

@@ -1,7 +1,5 @@
 package apispec
 
-import "strings"
-
 // Document represents an OpenAPI 3.0.3 document.
 type Document struct {
 	OpenAPI    string      `json:"openapi" yaml:"openapi"`
@@ -68,6 +66,20 @@ type Operation struct {
 	Responses   Responses    `json:"responses" yaml:"responses"`
 }
 
+// Schema represents an OpenAPI schema object.
+type Schema struct {
+	Ref                  string     `json:"$ref,omitempty" yaml:"$ref,omitempty"`
+	Type                 string     `json:"type,omitempty" yaml:"type,omitempty"`
+	Format               string     `json:"format,omitempty" yaml:"format,omitempty"`
+	Description          string     `json:"description,omitempty" yaml:"description,omitempty"`
+	Properties           Properties `json:"properties,omitempty" yaml:"properties,omitempty"`
+	Items                *Schema    `json:"items,omitempty" yaml:"items,omitempty"`
+	Required             []string   `json:"required,omitempty" yaml:"required,omitempty"`
+	Enum                 []any      `json:"enum,omitempty" yaml:"enum,omitempty"`
+	Example              any        `json:"example,omitempty" yaml:"example,omitempty"`
+	AdditionalProperties *Schema    `json:"additionalProperties,omitempty" yaml:"additionalProperties,omitempty"`
+}
+
 // Parameter describes a single operation parameter.
 type Parameter struct {
 	Name        string  `json:"name" yaml:"name"`
@@ -103,83 +115,13 @@ type Response struct {
 
 // Components holds reusable schema definitions.
 type Components struct {
-	// Todo: OrderedMap[*Schema] with alphabetical sort in Merge, like Paths and Responses.
 	Schemas map[string]*Schema `json:"schemas,omitempty" yaml:"schemas,omitempty"`
 }
 
 // OpenAPIVersion is the OpenAPI specification version.
 const OpenAPIVersion = "3.0.3"
 
-// NewDocument creates a Document with the OpenAPI version set and info populated.
-// Version and release follow the build convention: release is a git tag (e.g. "1.2.3")
-// or "untagged"; version is a branch.revcount.revhash fallback. Descriptions are
-// joined with double newlines.
-func NewDocument(version, release, url, title string, descriptions ...string) Document {
-
-	apiVersion := release
-	if release == "untagged" {
-		apiVersion = "_" + version
-	}
-	if apiVersion == "" {
-		apiVersion = "_unreleased"
-	}
-
-	return Document{
-		OpenAPI: OpenAPIVersion,
-		Info: Info{
-			Title:       title,
-			Version:     apiVersion,
-			Description: strings.Join(descriptions, "\n\n"),
-		},
-		Servers: []Server{
-			{URL: url, Description: "API server"},
-		},
-	}
-}
-
-// Helpers for common patterns.
-
 // Ref creates a schema reference.
 func Ref(name string) *Schema {
 	return &Schema{Ref: "#/components/schemas/" + name}
-}
-
-// JsonContent creates a Content with a single application/json media type.
-func JsonContent(schema *Schema) Content {
-	return Content{"application/json": &MediaType{Schema: schema}}
-}
-
-// StatusResponse creates a simple {"status": "ok"} response.
-func StatusResponse(desc string) *Response {
-	return &Response{
-		Description: desc,
-		Content: JsonContent(&Schema{
-			Type: "object",
-			Properties: Properties{
-				{Name: "status", Schema: &Schema{Type: "string", Example: "ok"}},
-			},
-		}),
-	}
-}
-
-// ErrorResponse creates a response referencing the Error schema.
-func ErrorResponse(desc string) *Response {
-	return &Response{
-		Description: desc,
-		Content:     JsonContent(Ref("Error")),
-	}
-}
-
-// ObjResponse creates a response with a named object wrapper,
-// mirroring respond.WriteObjects(ctx, map[string]any{name: ...}).
-func ObjResponse(desc, name string, schema *Schema) *Response {
-	return &Response{
-		Description: desc,
-		Content: JsonContent(&Schema{
-			Type: "object",
-			Properties: Properties{
-				{Name: name, Schema: schema},
-			},
-		}),
-	}
 }

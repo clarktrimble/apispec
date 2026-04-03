@@ -11,15 +11,14 @@ import (
 )
 
 type fragment struct {
-	Tags  []apispec.Tag  `yaml:"tags"`
-	Paths apispec.Paths  `yaml:"paths"`
+	Paths apispec.Paths `yaml:"paths"`
 }
 
 // loadFragment finds and parses paths.yaml in a package's directory.
-func loadFragment(pkg *packages.Package) (apispec.Paths, []apispec.Tag, error) {
+func loadFragment(pkg *packages.Package) (apispec.Paths, error) {
 
 	if len(pkg.GoFiles) == 0 {
-		return nil, nil, errors.Errorf("package %s has no Go files", pkg.PkgPath)
+		return nil, errors.Errorf("package %s has no Go files", pkg.PkgPath)
 	}
 
 	dir := filepath.Dir(pkg.GoFiles[0])
@@ -27,16 +26,16 @@ func loadFragment(pkg *packages.Package) (apispec.Paths, []apispec.Tag, error) {
 
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
-		return nil, nil, nil
+		return nil, nil
 	}
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "reading %s", path)
+		return nil, errors.Wrapf(err, "reading %s", path)
 	}
 
 	var f fragment
 	if err := yaml.Unmarshal(data, &f); err != nil {
-		return nil, nil, errors.Wrapf(err, "parsing %s", path)
+		return nil, errors.Wrapf(err, "parsing %s", path)
 	}
 
-	return f.Paths, f.Tags, nil
+	return f.Paths, nil
 }

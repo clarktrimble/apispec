@@ -1,0 +1,9 @@
+title: Name Collision Test
+description:
+  - Tests that same-named transitive deps from different packages are detected.
+
+specs:
+  - package: github.com/clarktrimble/apispec/static/fixture
+    types: [Widget]
+  - package: github.com/clarktrimble/apispec/static/fixture2
+    types: [Gadget]

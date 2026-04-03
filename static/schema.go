@@ -6,23 +6,35 @@ import (
 	"strings"
 
 	"github.com/clarktrimble/apispec"
+	"github.com/pkg/errors"
 )
 
-// deps tracks named struct types discovered during schema generation,
-// mirroring the runtime Deps but with go/types instead of reflect.
+// deps tracks named struct types discovered during schema generation.
 type deps map[string]*types.Named
 
+// schemaEntry pairs a generated schema with the type that produced it,
+// so name collisions between different types can be detected.
+type schemaEntry struct {
+	schema *apispec.Schema
+	source *types.Named
+}
+
 // resolveAll generates schemas for all deps, chasing transitive deps
-// until no new ones appear.
-func resolveAll(schemas map[string]*apispec.Schema, pending deps, df *docFinder) {
+// until no new ones appear. Returns an error if two different types
+// from different packages produce the same schema name.
+func resolveAll(schemas map[string]schemaEntry, pending deps, df *docFinder) error {
 	for len(pending) > 0 {
 		next := deps{}
 		for name, t := range pending {
-			if _, done := schemas[name]; done {
+			if existing, done := schemas[name]; done {
+				if existing.source != t {
+					return errors.Errorf("schema name collision: %q from %s and %s",
+						name, existing.source.Obj().Pkg().Path(), t.Obj().Pkg().Path())
+				}
 				continue
 			}
 			s, discovered := schemaFrom(t, df)
-			schemas[name] = s
+			schemas[name] = schemaEntry{schema: s, source: t}
 			for dname, dt := range discovered {
 				if _, done := schemas[dname]; !done {
 					next[dname] = dt
@@ -31,6 +43,7 @@ func resolveAll(schemas map[string]*apispec.Schema, pending deps, df *docFinder)
 		}
 		pending = next
 	}
+	return nil
 }
 
 func schemaFrom(t types.Type, df *docFinder) (*apispec.Schema, deps) {

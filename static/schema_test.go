@@ -1,9 +1,9 @@
 package static
 
 import (
+	"go/types"
 	"testing"
 
-	"github.com/clarktrimble/apispec"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -116,24 +116,27 @@ func TestResolveAll(t *testing.T) {
 		t.Fatal("Operation type not found")
 	}
 
-	schemas := map[string]*apispec.Schema{}
+	named := obj.Type().(*types.Named)
+	schemas := map[string]schemaEntry{}
 	schema, discovered := schemaFrom(obj.Type(), nil)
-	schemas["Operation"] = schema
-	resolveAll(schemas, discovered, nil)
+	schemas["Operation"] = schemaEntry{schema: schema, source: named}
+	if err := resolveAll(schemas, discovered, nil); err != nil {
+		t.Fatalf("resolveAll: %v", err)
+	}
 
 	// Operation -> RequestBody -> MediaType -> Schema (transitive chain)
 	for _, name := range []string{"RequestBody", "Parameter"} {
-		if schemas[name] == nil {
+		if schemas[name].schema == nil {
 			t.Errorf("missing direct dep: %s", name)
 		}
 	}
 	for _, name := range []string{"MediaType", "Schema"} {
-		if schemas[name] == nil {
+		if schemas[name].schema == nil {
 			t.Errorf("missing transitive dep: %s", name)
 		}
 	}
 
-	t.Logf("resolved %d schemas: %v", len(schemas), schemaNames(schemas))
+	t.Logf("resolved %d schemas: %v", len(schemas), entryNames(schemas))
 }
 
 func TestConfigSchema(t *testing.T) {
@@ -261,7 +264,7 @@ func TestDocComments(t *testing.T) {
 	}
 }
 
-func schemaNames(schemas map[string]*apispec.Schema) []string {
+func entryNames(schemas map[string]schemaEntry) []string {
 	names := make([]string, 0, len(schemas))
 	for name := range schemas {
 		names = append(names, name)

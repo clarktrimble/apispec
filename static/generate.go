@@ -1,6 +1,7 @@
 package static
 
 import (
+	"go/types"
 	"os"
 	"strings"
 
@@ -36,7 +37,7 @@ func Generate(cfgPath, outPath string) error {
 		},
 	}
 
-	schemas := map[string]*apispec.Schema{}
+	schemas := map[string]schemaEntry{}
 	df := newDocFinder(pkgs)
 
 	for _, spec := range cfg.Specs {
@@ -45,22 +46,38 @@ func Generate(cfgPath, outPath string) error {
 			return errors.Errorf("package %s not loaded", spec.Package)
 		}
 
-		paths, tags, err := loadFragment(pkg)
+		paths, err := loadFragment(pkg)
 		if err != nil {
 			return err
 		}
-		// Todo: detect duplicate paths (runtime mergePaths errors on dupes)
-		doc.Paths = append(doc.Paths, paths...)
-		doc.Tags = append(doc.Tags, tags...)
+		for _, kv := range paths {
+			if doc.Paths.Has(kv.Key) {
+				return errors.Errorf("duplicate path: %s", kv.Key)
+			}
+			doc.Paths = append(doc.Paths, kv)
+		}
 
 		for _, typeName := range spec.Types {
 			obj := pkg.Types.Scope().Lookup(typeName)
 			if obj == nil {
 				return errors.Errorf("type %s not found in %s", typeName, spec.Package)
 			}
+			named, ok := obj.Type().(*types.Named)
+			if !ok {
+				return errors.Errorf("type %s in %s is not a named type", typeName, spec.Package)
+			}
+			if existing, exists := schemas[typeName]; exists {
+				if existing.source != named {
+					return errors.Errorf("schema name collision: %q from %s and %s",
+						typeName, existing.source.Obj().Pkg().Path(), spec.Package)
+				}
+				continue
+			}
 			schema, discovered := schemaFrom(obj.Type(), df)
-			schemas[typeName] = schema
-			resolveAll(schemas, discovered, df)
+			schemas[typeName] = schemaEntry{schema: schema, source: named}
+			if err := resolveAll(schemas, discovered, df); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -77,17 +94,21 @@ func Generate(cfgPath, outPath string) error {
 		if name == "" {
 			name = cfg.Config.Type
 		}
-		schemas[name] = configSchemaFrom(obj.Type())
+		schemas[name] = schemaEntry{schema: configSchemaFrom(obj.Type())}
 	}
 
-	schemas["Error"] = &apispec.Schema{
+	schemas["Error"] = schemaEntry{schema: &apispec.Schema{
 		Type: "object",
 		Properties: apispec.Properties{
 			{Name: "error", Schema: &apispec.Schema{Type: "string", Description: "Error message"}},
 		},
-	}
+	}}
 
-	doc.Components = &apispec.Components{Schemas: schemas}
+	componentSchemas := map[string]*apispec.Schema{}
+	for name, entry := range schemas {
+		componentSchemas[name] = entry.schema
+	}
+	doc.Components = &apispec.Components{Schemas: componentSchemas}
 
 	data, err := yaml.Marshal(doc)
 	if err != nil {
