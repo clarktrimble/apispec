@@ -1,0 +1,12 @@
+title: Widget Service API
+description:
+  - A test service for managing widgets.
+  - Exercises the full static generation pipeline.
+
+config:
+  package: github.com/clarktrimble/apispec/fixture
+  type: ServerConfig
+
+specs:
+  - package: github.com/clarktrimble/apispec/fixture
+    types: [Widget]

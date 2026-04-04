@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/clarktrimble/apispec/static"
+	"github.com/clarktrimble/apispec"
 )
 
 var (
@@ -35,7 +35,7 @@ func main() {
 	case "gen":
 		genCmd.Parse(os.Args[2:])
 
-		err := static.Generate(*cfgPath, *outPath)
+		err := apispec.Generate(*cfgPath, *outPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
