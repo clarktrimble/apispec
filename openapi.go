@@ -1,127 +1,127 @@
 package apispec
 
-// Document represents an OpenAPI 3.0.3 document.
-type Document struct {
+// document represents an OpenAPI 3.0.3 document.
+type document struct {
 	OpenAPI    string      `json:"openapi" yaml:"openapi"`
-	Info       Info        `json:"info" yaml:"info"`
-	Servers    []Server    `json:"servers,omitempty" yaml:"servers,omitempty"`
-	Tags       []Tag       `json:"tags,omitempty" yaml:"tags,omitempty"`
-	Paths      Paths       `json:"paths" yaml:"paths"`
-	Components *Components `json:"components,omitempty" yaml:"components,omitempty"`
+	Info       info        `json:"info" yaml:"info"`
+	Servers    []server    `json:"servers,omitempty" yaml:"servers,omitempty"`
+	Tags       []tag       `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Paths      paths       `json:"paths" yaml:"paths"`
+	Components *components `json:"components,omitempty" yaml:"components,omitempty"`
 }
 
-// Info provides metadata about the API.
-type Info struct {
+// info provides metadata about the API.
+type info struct {
 	Title       string   `json:"title" yaml:"title"`
 	Version     string   `json:"version" yaml:"version"`
 	Description string   `json:"description,omitempty" yaml:"description,omitempty"`
-	Contact     *Contact `json:"contact,omitempty" yaml:"contact,omitempty"`
-	License     *License `json:"license,omitempty" yaml:"license,omitempty"`
+	Contact     *contact `json:"contact,omitempty" yaml:"contact,omitempty"`
+	License     *license `json:"license,omitempty" yaml:"license,omitempty"`
 }
 
-// Contact information for the API.
-type Contact struct {
+// contact information for the API.
+type contact struct {
 	Name  string `json:"name,omitempty" yaml:"name,omitempty"`
 	Email string `json:"email,omitempty" yaml:"email,omitempty"`
 }
 
-// License information for the API.
-type License struct {
+// license information for the API.
+type license struct {
 	Name string `json:"name" yaml:"name"`
 	URL  string `json:"url,omitempty" yaml:"url,omitempty"`
 }
 
-// Server represents an API server.
-type Server struct {
+// server represents an API server.
+type server struct {
 	URL         string `json:"url" yaml:"url"`
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
-// Tag adds metadata to a group of operations.
-type Tag struct {
+// tag adds metadata to a group of operations.
+type tag struct {
 	Name        string `json:"name" yaml:"name"`
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
-// Paths is an ordered collection of URL patterns to their operations.
-type Paths = OrderedMap[*PathItem]
+// paths is an ordered collection of URL patterns to their operations.
+type paths = orderedMap[*pathItem]
 
-// PathItem describes operations on a single path.
-type PathItem struct {
-	Get    *Operation `json:"get,omitempty" yaml:"get,omitempty"`
-	Post   *Operation `json:"post,omitempty" yaml:"post,omitempty"`
-	Put    *Operation `json:"put,omitempty" yaml:"put,omitempty"`
-	Delete *Operation `json:"delete,omitempty" yaml:"delete,omitempty"`
-	Patch  *Operation `json:"patch,omitempty" yaml:"patch,omitempty"`
+// pathItem describes operations on a single path.
+type pathItem struct {
+	Get    *operation `json:"get,omitempty" yaml:"get,omitempty"`
+	Post   *operation `json:"post,omitempty" yaml:"post,omitempty"`
+	Put    *operation `json:"put,omitempty" yaml:"put,omitempty"`
+	Delete *operation `json:"delete,omitempty" yaml:"delete,omitempty"`
+	Patch  *operation `json:"patch,omitempty" yaml:"patch,omitempty"`
 }
 
-// Operation describes a single API operation on a path.
-type Operation struct {
+// operation describes a single API operation on a path.
+type operation struct {
 	Summary     string       `json:"summary,omitempty" yaml:"summary,omitempty"`
 	Description string       `json:"description,omitempty" yaml:"description,omitempty"`
 	OperationID string       `json:"operationId,omitempty" yaml:"operationId,omitempty"`
 	Tags        []string     `json:"tags,omitempty" yaml:"tags,omitempty"`
-	Parameters  []Parameter  `json:"parameters,omitempty" yaml:"parameters,omitempty"`
-	RequestBody *RequestBody `json:"requestBody,omitempty" yaml:"requestBody,omitempty"`
-	Responses   Responses    `json:"responses" yaml:"responses"`
+	Parameters  []parameter  `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	RequestBody *requestBody `json:"requestBody,omitempty" yaml:"requestBody,omitempty"`
+	Responses   responses    `json:"responses" yaml:"responses"`
 }
 
-// Schema represents an OpenAPI schema object.
-type Schema struct {
+// schema represents an OpenAPI schema object.
+type schema struct {
 	Ref                  string     `json:"$ref,omitempty" yaml:"$ref,omitempty"`
 	Type                 string     `json:"type,omitempty" yaml:"type,omitempty"`
 	Format               string     `json:"format,omitempty" yaml:"format,omitempty"`
 	Description          string     `json:"description,omitempty" yaml:"description,omitempty"`
-	Properties           Properties `json:"properties,omitempty" yaml:"properties,omitempty"`
-	Items                *Schema    `json:"items,omitempty" yaml:"items,omitempty"`
+	Properties           properties `json:"properties,omitempty" yaml:"properties,omitempty"`
+	Items                *schema    `json:"items,omitempty" yaml:"items,omitempty"`
 	Required             []string   `json:"required,omitempty" yaml:"required,omitempty"`
 	Enum                 []any      `json:"enum,omitempty" yaml:"enum,omitempty"`
 	Example              any        `json:"example,omitempty" yaml:"example,omitempty"`
-	AdditionalProperties *Schema    `json:"additionalProperties,omitempty" yaml:"additionalProperties,omitempty"`
+	AdditionalProperties *schema    `json:"additionalProperties,omitempty" yaml:"additionalProperties,omitempty"`
 }
 
-// Parameter describes a single operation parameter.
-type Parameter struct {
+// parameter describes a single operation parameter.
+type parameter struct {
 	Name        string  `json:"name" yaml:"name"`
 	In          string  `json:"in" yaml:"in"`
 	Required    bool    `json:"required,omitempty" yaml:"required,omitempty"`
 	Description string  `json:"description,omitempty" yaml:"description,omitempty"`
-	Schema      *Schema `json:"schema,omitempty" yaml:"schema,omitempty"`
+	Schema      *schema `json:"schema,omitempty" yaml:"schema,omitempty"`
 	Example     any     `json:"example,omitempty" yaml:"example,omitempty"`
 }
 
-// RequestBody describes a request body.
-type RequestBody struct {
+// requestBody describes a request body.
+type requestBody struct {
 	Required bool    `json:"required,omitempty" yaml:"required,omitempty"`
-	Content  Content `json:"content" yaml:"content"`
+	Content  content `json:"content" yaml:"content"`
 }
 
-// Content maps media types to their schema.
-type Content map[string]*MediaType
+// content maps media types to their schema.
+type content map[string]*mediaType
 
-// MediaType describes a media type with a schema.
-type MediaType struct {
-	Schema *Schema `json:"schema" yaml:"schema"`
+// mediaType describes a media type with a schema.
+type mediaType struct {
+	Schema *schema `json:"schema" yaml:"schema"`
 }
 
-// Responses is an ordered collection of HTTP status codes to their response definition.
-type Responses = OrderedMap[*Response]
+// responses is an ordered collection of HTTP status codes to their response definition.
+type responses = orderedMap[*response]
 
-// Response describes a single response from an API operation.
-type Response struct {
+// response describes a single response from an API operation.
+type response struct {
 	Description string  `json:"description" yaml:"description"`
-	Content     Content `json:"content,omitempty" yaml:"content,omitempty"`
+	Content     content `json:"content,omitempty" yaml:"content,omitempty"`
 }
 
-// Components holds reusable schema definitions.
-type Components struct {
-	Schemas map[string]*Schema `json:"schemas,omitempty" yaml:"schemas,omitempty"`
+// components holds reusable schema definitions.
+type components struct {
+	Schemas map[string]*schema `json:"schemas,omitempty" yaml:"schemas,omitempty"`
 }
 
-// OpenAPIVersion is the OpenAPI specification version.
-const OpenAPIVersion = "3.0.3"
+// openAPIVersion is the OpenAPI specification version.
+const openAPIVersion = "3.0.3"
 
-// Ref creates a schema reference.
-func Ref(name string) *Schema {
-	return &Schema{Ref: "#/components/schemas/" + name}
+// ref creates a schema reference.
+func ref(name string) *schema {
+	return &schema{Ref: "#/components/schemas/" + name}
 }

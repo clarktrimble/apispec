@@ -14,7 +14,7 @@ type deps map[string]*types.Named
 // schemaEntry pairs a generated schema with the type that produced it,
 // so name collisions between different types can be detected.
 type schemaEntry struct {
-	schema *Schema
+	schema *schema
 	source *types.Named
 }
 
@@ -45,7 +45,7 @@ func resolveAll(schemas map[string]schemaEntry, pending deps, df *docFinder) err
 	return nil
 }
 
-func schemaFrom(t types.Type, df *docFinder) (*Schema, deps) {
+func schemaFrom(t types.Type, df *docFinder) (*schema, deps) {
 	d := deps{}
 
 	// For named struct types, generate the full schema directly
@@ -64,7 +64,7 @@ func schemaFrom(t types.Type, df *docFinder) (*Schema, deps) {
 	return typeToSchema(t, d, df), d
 }
 
-func typeToSchema(t types.Type, d deps, df *docFinder) *Schema {
+func typeToSchema(t types.Type, d deps, df *docFinder) *schema {
 
 	switch t := t.(type) {
 	case *types.Named:
@@ -72,12 +72,12 @@ func typeToSchema(t types.Type, d deps, df *docFinder) *Schema {
 	case *types.Pointer:
 		return typeToSchema(t.Elem(), d, df)
 	case *types.Slice:
-		return &Schema{
+		return &schema{
 			Type:  "array",
 			Items: typeToSchema(t.Elem(), d, df),
 		}
 	case *types.Map:
-		return &Schema{
+		return &schema{
 			Type:                 "object",
 			AdditionalProperties: typeToSchema(t.Elem(), d, df),
 		}
@@ -86,13 +86,13 @@ func typeToSchema(t types.Type, d deps, df *docFinder) *Schema {
 	case *types.Basic:
 		return basicSchema(t)
 	case *types.Interface:
-		return &Schema{Type: "object"}
+		return &schema{Type: "object"}
 	default:
-		return &Schema{Type: "object"}
+		return &schema{Type: "object"}
 	}
 }
 
-func namedSchema(t *types.Named, d deps, df *docFinder) *Schema {
+func namedSchema(t *types.Named, d deps, df *docFinder) *schema {
 
 	obj := t.Obj()
 	pkg := obj.Pkg()
@@ -112,7 +112,7 @@ func namedSchema(t *types.Named, d deps, df *docFinder) *Schema {
 	// named struct: register as dep and emit $ref
 	if pkg != nil && name != "" {
 		d[name] = t
-		return Ref(name)
+		return ref(name)
 	}
 
 	return structSchema(st, nil, d, df)
@@ -120,9 +120,9 @@ func namedSchema(t *types.Named, d deps, df *docFinder) *Schema {
 
 // structSchema generates a schema from a struct type.
 // obj is the named type's object (for field doc lookup), nil for anonymous structs.
-func structSchema(st *types.Struct, obj types.Object, d deps, df *docFinder) *Schema {
+func structSchema(st *types.Struct, obj types.Object, d deps, df *docFinder) *schema {
 
-	schema := &Schema{Type: "object"}
+	s := &schema{Type: "object"}
 
 	// resolve package path for field doc lookup
 	var pkgPath string
@@ -158,30 +158,30 @@ func structSchema(st *types.Struct, obj types.Object, d deps, df *docFinder) *Sc
 			prop.Example = ex
 		}
 
-		schema.Properties = append(schema.Properties,
-			Property{Name: name, Schema: prop})
+		s.Properties = append(s.Properties,
+			property{Name: name, Schema: prop})
 
 		if !omitempty && !isPointer(field.Type()) {
-			schema.Required = append(schema.Required, name)
+			s.Required = append(s.Required, name)
 		}
 	}
 
-	return schema
+	return s
 }
 
-func basicSchema(t *types.Basic) *Schema {
+func basicSchema(t *types.Basic) *schema {
 
 	switch info := t.Info(); {
 	case info&types.IsString != 0:
-		return &Schema{Type: "string"}
+		return &schema{Type: "string"}
 	case info&types.IsBoolean != 0:
-		return &Schema{Type: "boolean"}
+		return &schema{Type: "boolean"}
 	case info&types.IsInteger != 0:
-		return &Schema{Type: "integer"}
+		return &schema{Type: "integer"}
 	case info&types.IsFloat != 0:
-		return &Schema{Type: "number"}
+		return &schema{Type: "number"}
 	default:
-		return &Schema{Type: "object"}
+		return &schema{Type: "object"}
 	}
 }
 
@@ -190,17 +190,17 @@ func isPointer(t types.Type) bool {
 	return ok
 }
 
-func wellKnownSchema(pkg *types.Package, name string) (*Schema, bool) {
+func wellKnownSchema(pkg *types.Package, name string) (*schema, bool) {
 	if pkg == nil {
 		return nil, false
 	}
 	switch path := pkg.Path(); {
 	case path == "time" && name == "Time":
-		return &Schema{Type: "string", Format: "date-time"}, true
+		return &schema{Type: "string", Format: "date-time"}, true
 	case path == "time" && name == "Duration":
-		return &Schema{Type: "string"}, true
+		return &schema{Type: "string"}, true
 	case path == "encoding/json" && name == "RawMessage":
-		return &Schema{Type: "object", Description: "raw JSON"}, true
+		return &schema{Type: "object", Description: "raw JSON"}, true
 	}
 	return nil, false
 }

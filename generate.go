@@ -25,14 +25,14 @@ func Generate(cfgPath, outPath string) error {
 		return err
 	}
 
-	doc := Document{
-		OpenAPI: OpenAPIVersion,
-		Info: Info{
+	doc := document{
+		OpenAPI: openAPIVersion,
+		Info: info{
 			Title:       cfg.Title,
 			Version:     "${RELEASE}",
 			Description: strings.Join(cfg.Description, "\n\n"),
 		},
-		Servers: []Server{
+		Servers: []server{
 			{URL: "${PUBLISHED_URL}", Description: "API server"},
 		},
 	}
@@ -40,10 +40,10 @@ func Generate(cfgPath, outPath string) error {
 	schemas := map[string]schemaEntry{}
 	df := newDocFinder(pkgs)
 
-	for _, spec := range cfg.Specs {
-		pkg, ok := pkgs[spec.Package]
+	for _, sp := range cfg.Specs {
+		pkg, ok := pkgs[sp.Package]
 		if !ok {
-			return errors.Errorf("package %s not loaded", spec.Package)
+			return errors.Errorf("package %s not loaded", sp.Package)
 		}
 
 		paths, err := loadFragment(pkg)
@@ -57,7 +57,7 @@ func Generate(cfgPath, outPath string) error {
 			doc.Paths = append(doc.Paths, kv)
 		}
 
-		if err := resolveSpecTypes(spec, pkg, schemas, df); err != nil {
+		if err := resolveSpecTypes(sp, pkg, schemas, df); err != nil {
 			return err
 		}
 	}
@@ -78,18 +78,18 @@ func Generate(cfgPath, outPath string) error {
 		schemas[name] = schemaEntry{schema: configSchemaFrom(obj.Type())}
 	}
 
-	schemas["Error"] = schemaEntry{schema: &Schema{
+	schemas["Error"] = schemaEntry{schema: &schema{
 		Type: "object",
-		Properties: Properties{
-			{Name: "error", Schema: &Schema{Type: "string", Description: "Error message"}},
+		Properties: properties{
+			{Name: "error", Schema: &schema{Type: "string", Description: "Error message"}},
 		},
 	}}
 
-	componentSchemas := map[string]*Schema{}
+	componentSchemas := map[string]*schema{}
 	for name, entry := range schemas {
 		componentSchemas[name] = entry.schema
 	}
-	doc.Components = &Components{Schemas: componentSchemas}
+	doc.Components = &components{Schemas: componentSchemas}
 
 	data, err := yaml.Marshal(doc)
 	if err != nil {
@@ -99,20 +99,20 @@ func Generate(cfgPath, outPath string) error {
 	return os.WriteFile(outPath, data, 0o644) //nolint:gosec // spec file should be world-readable
 }
 
-func loadConfig(path string) (Config, error) {
+func loadConfig(path string) (config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return Config{}, errors.Wrap(err, "reading config")
+		return config{}, errors.Wrap(err, "reading config")
 	}
 
-	var cfg Config
+	var cfg config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return Config{}, errors.Wrap(err, "parsing config")
+		return config{}, errors.Wrap(err, "parsing config")
 	}
 	return cfg, nil
 }
 
-func loadPackages(cfg Config) (map[string]*packages.Package, error) {
+func loadPackages(cfg config) (map[string]*packages.Package, error) {
 
 	patterns := make([]string, 0, len(cfg.Specs)+1)
 	for _, s := range cfg.Specs {
@@ -143,21 +143,21 @@ func loadPackages(cfg Config) (map[string]*packages.Package, error) {
 	return result, nil
 }
 
-func resolveSpecTypes(spec Spec, pkg *packages.Package, schemas map[string]schemaEntry, df *docFinder) error {
+func resolveSpecTypes(sp spec, pkg *packages.Package, schemas map[string]schemaEntry, df *docFinder) error {
 
-	for _, typeName := range spec.Types {
+	for _, typeName := range sp.Types {
 		obj := pkg.Types.Scope().Lookup(typeName)
 		if obj == nil {
-			return errors.Errorf("type %s not found in %s", typeName, spec.Package)
+			return errors.Errorf("type %s not found in %s", typeName, sp.Package)
 		}
 		named, ok := obj.Type().(*types.Named)
 		if !ok {
-			return errors.Errorf("type %s in %s is not a named type", typeName, spec.Package)
+			return errors.Errorf("type %s in %s is not a named type", typeName, sp.Package)
 		}
 		if existing, exists := schemas[typeName]; exists {
 			if existing.source != named {
 				return errors.Errorf("schema name collision: %q from %s and %s",
-					typeName, existing.source.Obj().Pkg().Path(), spec.Package)
+					typeName, existing.source.Obj().Pkg().Path(), sp.Package)
 			}
 			continue
 		}
@@ -172,11 +172,11 @@ func resolveSpecTypes(spec Spec, pkg *packages.Package, schemas map[string]schem
 }
 
 type fragment struct {
-	Paths Paths `yaml:"paths"`
+	Paths paths `yaml:"paths"`
 }
 
 // loadFragment finds and parses paths.yaml in a package's directory.
-func loadFragment(pkg *packages.Package) (Paths, error) {
+func loadFragment(pkg *packages.Package) (paths, error) {
 
 	if len(pkg.GoFiles) == 0 {
 		return nil, errors.Errorf("package %s has no Go files", pkg.PkgPath)

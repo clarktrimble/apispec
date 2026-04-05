@@ -31,21 +31,21 @@ func TestSchemaFromServer(t *testing.T) {
 
 	pkg := loadTestPackage(t, "github.com/clarktrimble/apispec")
 
-	obj := pkg.Types.Scope().Lookup("Server")
+	obj := pkg.Types.Scope().Lookup("server")
 	if obj == nil {
-		t.Fatal("Server type not found")
+		t.Fatal("server type not found")
 	}
 
-	schema, deps := schemaFrom(obj.Type(), nil)
+	s, deps := schemaFrom(obj.Type(), nil)
 
-	if schema.Type != "object" {
-		t.Errorf("expected object, got %s", schema.Type)
+	if s.Type != "object" {
+		t.Errorf("expected object, got %s", s.Type)
 	}
-	if len(schema.Properties) != 2 {
-		t.Errorf("expected 2 properties, got %d", len(schema.Properties))
+	if len(s.Properties) != 2 {
+		t.Errorf("expected 2 properties, got %d", len(s.Properties))
 	}
 
-	url := schema.Properties.Get("url")
+	url := s.Properties.Get("url")
 	if url == nil {
 		t.Fatal("missing url property")
 	}
@@ -53,14 +53,14 @@ func TestSchemaFromServer(t *testing.T) {
 		t.Errorf("expected string for url, got %s", url.Type)
 	}
 
-	desc := schema.Properties.Get("description")
+	desc := s.Properties.Get("description")
 	if desc == nil {
 		t.Fatal("missing description property")
 	}
 
 	// url is required (no omitempty), description is not (has omitempty)
-	if len(schema.Required) != 1 || schema.Required[0] != "url" {
-		t.Errorf("expected required [url], got %v", schema.Required)
+	if len(s.Required) != 1 || s.Required[0] != "url" {
+		t.Errorf("expected required [url], got %v", s.Required)
 	}
 
 	if len(deps) != 0 {
@@ -72,20 +72,20 @@ func TestSchemaFromOperation(t *testing.T) {
 
 	pkg := loadTestPackage(t, "github.com/clarktrimble/apispec")
 
-	obj := pkg.Types.Scope().Lookup("Operation")
+	obj := pkg.Types.Scope().Lookup("operation")
 	if obj == nil {
-		t.Fatal("Operation type not found")
+		t.Fatal("operation type not found")
 	}
 
-	schema, deps := schemaFrom(obj.Type(), nil)
+	s, deps := schemaFrom(obj.Type(), nil)
 
-	if schema.Type != "object" {
-		t.Errorf("expected object, got %s", schema.Type)
+	if s.Type != "object" {
+		t.Errorf("expected object, got %s", s.Type)
 	}
 
 	// Operation has nested named types: Parameter, RequestBody
 	// These should be $ref with deps registered
-	params := schema.Properties.Get("parameters")
+	params := s.Properties.Get("parameters")
 	if params == nil {
 		t.Fatal("missing parameters property")
 	}
@@ -93,7 +93,7 @@ func TestSchemaFromOperation(t *testing.T) {
 		t.Errorf("expected array for parameters, got %s", params.Type)
 	}
 
-	reqBody := schema.Properties.Get("requestBody")
+	reqBody := s.Properties.Get("requestBody")
 	if reqBody == nil {
 		t.Fatal("missing requestBody property")
 	}
@@ -111,29 +111,29 @@ func TestResolveAll(t *testing.T) {
 
 	pkg := loadTestPackage(t, "github.com/clarktrimble/apispec")
 
-	obj := pkg.Types.Scope().Lookup("Operation")
+	obj := pkg.Types.Scope().Lookup("operation")
 	if obj == nil {
-		t.Fatal("Operation type not found")
+		t.Fatal("operation type not found")
 	}
 
 	named, ok := obj.Type().(*types.Named)
 	if !ok {
-		t.Fatal("Operation is not a named type")
+		t.Fatal("operation is not a named type")
 	}
 	schemas := map[string]schemaEntry{}
-	schema, discovered := schemaFrom(obj.Type(), nil)
-	schemas["Operation"] = schemaEntry{schema: schema, source: named}
+	s, discovered := schemaFrom(obj.Type(), nil)
+	schemas["operation"] = schemaEntry{schema: s, source: named}
 	if err := resolveAll(schemas, discovered, nil); err != nil {
 		t.Fatalf("resolveAll: %v", err)
 	}
 
-	// Operation -> RequestBody -> MediaType -> Schema (transitive chain)
-	for _, name := range []string{"RequestBody", "Parameter"} {
+	// operation -> requestBody -> mediaType -> schema (transitive chain)
+	for _, name := range []string{"requestBody", "parameter"} {
 		if schemas[name].schema == nil {
 			t.Errorf("missing direct dep: %s", name)
 		}
 	}
-	for _, name := range []string{"MediaType", "Schema"} {
+	for _, name := range []string{"mediaType", "schema"} {
 		if schemas[name].schema == nil {
 			t.Errorf("missing transitive dep: %s", name)
 		}
@@ -151,24 +151,24 @@ func TestConfigSchema(t *testing.T) {
 		t.Fatal("ServerConfig type not found")
 	}
 
-	schema := configSchemaFrom(obj.Type())
+	s := configSchemaFrom(obj.Type())
 
-	if schema.Type != "object" {
-		t.Errorf("expected object, got %s", schema.Type)
+	if s.Type != "object" {
+		t.Errorf("expected object, got %s", s.Type)
 	}
 
 	// "version" has ignored:"true", should be absent
-	if schema.Properties.Get("version") != nil {
+	if s.Properties.Get("version") != nil {
 		t.Error("version should be ignored")
 	}
 
 	// "port" has required:"true"
-	if len(schema.Required) != 1 || schema.Required[0] != "port" {
-		t.Errorf("expected required [port], got %v", schema.Required)
+	if len(s.Required) != 1 || s.Required[0] != "port" {
+		t.Errorf("expected required [port], got %v", s.Required)
 	}
 
 	// "timeout" has default:"10s" which becomes example
-	timeout := schema.Properties.Get("timeout")
+	timeout := s.Properties.Get("timeout")
 	if timeout == nil {
 		t.Fatal("missing timeout property")
 	}
@@ -195,9 +195,9 @@ func TestConfigSchemaInlinesNested(t *testing.T) {
 		t.Fatal("Widget type not found")
 	}
 
-	schema := configSchemaFrom(obj.Type())
+	s := configSchemaFrom(obj.Type())
 
-	part := schema.Properties.Get("part")
+	part := s.Properties.Get("part")
 	if part == nil {
 		t.Fatal("missing part property")
 	}
@@ -225,14 +225,14 @@ func TestDocComments(t *testing.T) {
 		t.Fatal("Widget type not found")
 	}
 
-	schema, _ := schemaFrom(obj.Type(), df)
+	s, _ := schemaFrom(obj.Type(), df)
 
-	if schema.Description != "Widget represents a mechanical component in the inventory." {
-		t.Errorf("expected type doc comment, got %q", schema.Description)
+	if s.Description != "Widget represents a mechanical component in the inventory." {
+		t.Errorf("expected type doc comment, got %q", s.Description)
 	}
 
 	// field-level: "desc" tag wins over doc comment
-	name := schema.Properties.Get("name")
+	name := s.Properties.Get("name")
 	if name == nil {
 		t.Fatal("missing name property")
 	}
@@ -241,7 +241,7 @@ func TestDocComments(t *testing.T) {
 	}
 
 	// field-level: doc comment as fallback when no desc tag
-	part := schema.Properties.Get("part")
+	part := s.Properties.Get("part")
 	if part == nil {
 		t.Fatal("missing part property")
 	}

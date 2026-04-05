@@ -8,7 +8,7 @@ import (
 // configSchemaFrom generates an OpenAPI Schema from a config struct type.
 // Uses envconfig-style tags (ignored, default, required) and always inlines
 // nested structs (no $ref).
-func configSchemaFrom(t types.Type) *Schema {
+func configSchemaFrom(t types.Type) *schema {
 
 	if named, ok := t.(*types.Named); ok {
 		if st, ok := named.Underlying().(*types.Struct); ok {
@@ -19,9 +19,9 @@ func configSchemaFrom(t types.Type) *Schema {
 	return typeToSchema(t, nil, nil)
 }
 
-func configStructSchema(st *types.Struct) *Schema {
+func configStructSchema(st *types.Struct) *schema {
 
-	schema := &Schema{Type: "object"}
+	s := &schema{Type: "object"}
 
 	for i := range st.NumFields() {
 		field := st.Field(i)
@@ -48,19 +48,19 @@ func configStructSchema(st *types.Struct) *Schema {
 			prop.Example = def
 		}
 
-		schema.Properties = append(schema.Properties,
-			Property{Name: name, Schema: prop})
+		s.Properties = append(s.Properties,
+			property{Name: name, Schema: prop})
 
 		if tag.Get("required") == "true" {
-			schema.Required = append(schema.Required, name)
+			s.Required = append(s.Required, name)
 		}
 	}
 
-	return schema
+	return s
 }
 
 // configTypeSchema is like typeToSchema but always inlines nested structs.
-func configTypeSchema(t types.Type) *Schema {
+func configTypeSchema(t types.Type) *schema {
 
 	switch t := t.(type) {
 	case *types.Named:
@@ -79,16 +79,16 @@ func configTypeSchema(t types.Type) *Schema {
 	case *types.Pointer:
 		return configTypeSchema(t.Elem())
 	case *types.Slice:
-		return &Schema{Type: "array", Items: configTypeSchema(t.Elem())}
+		return &schema{Type: "array", Items: configTypeSchema(t.Elem())}
 	case *types.Map:
-		return &Schema{Type: "object", AdditionalProperties: configTypeSchema(t.Elem())}
+		return &schema{Type: "object", AdditionalProperties: configTypeSchema(t.Elem())}
 	case *types.Struct:
 		return configStructSchema(t)
 	case *types.Basic:
 		return basicSchema(t)
 	case *types.Interface:
-		return &Schema{Type: "object"}
+		return &schema{Type: "object"}
 	default:
-		return &Schema{Type: "object"}
+		return &schema{Type: "object"}
 	}
 }

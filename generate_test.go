@@ -23,7 +23,7 @@ func TestGenerate(t *testing.T) {
 		t.Fatalf("reading output: %v", err)
 	}
 
-	var doc Document
+	var doc document
 	if err := yaml.Unmarshal(data, &doc); err != nil {
 		t.Fatalf("parsing output: %v", err)
 	}

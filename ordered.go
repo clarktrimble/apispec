@@ -8,18 +8,18 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// KV is a key-value pair for ordered maps.
-type KV[V any] struct {
+// kv is a key-value pair for ordered maps.
+type kv[V any] struct {
 	Key string
 	Val V
 }
 
-// OrderedMap is an ordered collection of key-value pairs
+// orderedMap is an ordered collection of key-value pairs
 // that marshals as a JSON/YAML object preserving insertion order.
-type OrderedMap[V any] []KV[V]
+type orderedMap[V any] []kv[V]
 
 // Get returns the value for a given key, or the zero value.
-func (m OrderedMap[V]) Get(key string) V {
+func (m orderedMap[V]) Get(key string) V {
 	for _, kv := range m {
 		if kv.Key == key {
 			return kv.Val
@@ -30,7 +30,7 @@ func (m OrderedMap[V]) Get(key string) V {
 }
 
 // Has reports whether key exists.
-func (m OrderedMap[V]) Has(key string) bool {
+func (m orderedMap[V]) Has(key string) bool {
 	for _, kv := range m {
 		if kv.Key == key {
 			return true
@@ -40,7 +40,7 @@ func (m OrderedMap[V]) Has(key string) bool {
 }
 
 // MarshalJSON renders as an ordered JSON object.
-func (m OrderedMap[V]) MarshalJSON() ([]byte, error) {
+func (m orderedMap[V]) MarshalJSON() ([]byte, error) {
 
 	buf := []byte{'{'}
 	for i, kv := range m {
@@ -64,7 +64,7 @@ func (m OrderedMap[V]) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON reads a JSON object preserving key order.
-func (m *OrderedMap[V]) UnmarshalJSON(data []byte) error {
+func (m *orderedMap[V]) UnmarshalJSON(data []byte) error {
 
 	dec := json.NewDecoder(bytes.NewReader(data))
 
@@ -91,13 +91,13 @@ func (m *OrderedMap[V]) UnmarshalJSON(data []byte) error {
 		if err := dec.Decode(&val); err != nil {
 			return err
 		}
-		*m = append(*m, KV[V]{Key: key, Val: val})
+		*m = append(*m, kv[V]{Key: key, Val: val})
 	}
 	return nil
 }
 
 // MarshalYAML renders as an ordered YAML mapping.
-func (m OrderedMap[V]) MarshalYAML() (any, error) {
+func (m orderedMap[V]) MarshalYAML() (any, error) {
 
 	node := &yaml.Node{Kind: yaml.MappingNode}
 	for _, kv := range m {
@@ -121,7 +121,7 @@ func (m OrderedMap[V]) MarshalYAML() (any, error) {
 }
 
 // UnmarshalYAML reads a YAML mapping preserving key order.
-func (m *OrderedMap[V]) UnmarshalYAML(node *yaml.Node) error {
+func (m *orderedMap[V]) UnmarshalYAML(node *yaml.Node) error {
 
 	if node.Kind != yaml.MappingNode {
 		return nil
@@ -135,22 +135,22 @@ func (m *OrderedMap[V]) UnmarshalYAML(node *yaml.Node) error {
 		if err := node.Content[i+1].Decode(&val); err != nil {
 			return err
 		}
-		*m = append(*m, KV[V]{Key: key, Val: val})
+		*m = append(*m, kv[V]{Key: key, Val: val})
 	}
 	return nil
 }
 
-// Property is a named schema entry.
-type Property struct {
+// property is a named schema entry.
+type property struct {
 	Name   string
-	Schema *Schema
+	Schema *schema
 }
 
-// Properties is an ordered collection of named schemas.
-type Properties []Property
+// properties is an ordered collection of named schemas.
+type properties []property
 
 // Get returns the schema for a given name, or nil.
-func (ps Properties) Get(name string) *Schema {
+func (ps properties) Get(name string) *schema {
 	for _, p := range ps {
 		if p.Name == name {
 			return p.Schema
@@ -160,7 +160,7 @@ func (ps Properties) Get(name string) *Schema {
 }
 
 // MarshalJSON renders as an ordered JSON object.
-func (ps Properties) MarshalJSON() ([]byte, error) {
+func (ps properties) MarshalJSON() ([]byte, error) {
 
 	buf := []byte{'{'}
 	for i, p := range ps {
@@ -184,7 +184,7 @@ func (ps Properties) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON reads a JSON object preserving key order.
-func (ps *Properties) UnmarshalJSON(data []byte) error {
+func (ps *properties) UnmarshalJSON(data []byte) error {
 
 	dec := json.NewDecoder(bytes.NewReader(data))
 
@@ -207,17 +207,17 @@ func (ps *Properties) UnmarshalJSON(data []byte) error {
 			return errors.Errorf("expected string key, got %T", tok)
 		}
 
-		var schema Schema
-		if err := dec.Decode(&schema); err != nil {
+		var s schema
+		if err := dec.Decode(&s); err != nil {
 			return err
 		}
-		*ps = append(*ps, Property{Name: name, Schema: &schema})
+		*ps = append(*ps, property{Name: name, Schema: &s})
 	}
 	return nil
 }
 
 // MarshalYAML renders as an ordered YAML mapping.
-func (ps Properties) MarshalYAML() (any, error) {
+func (ps properties) MarshalYAML() (any, error) {
 
 	node := &yaml.Node{
 		Kind: yaml.MappingNode,
@@ -243,7 +243,7 @@ func (ps Properties) MarshalYAML() (any, error) {
 }
 
 // UnmarshalYAML reads a YAML mapping preserving key order.
-func (ps *Properties) UnmarshalYAML(node *yaml.Node) error {
+func (ps *properties) UnmarshalYAML(node *yaml.Node) error {
 
 	if node.Kind != yaml.MappingNode {
 		return nil
@@ -253,11 +253,11 @@ func (ps *Properties) UnmarshalYAML(node *yaml.Node) error {
 	for i := 0; i < len(node.Content)-1; i += 2 {
 		name := node.Content[i].Value
 
-		var schema Schema
-		if err := node.Content[i+1].Decode(&schema); err != nil {
+		var s schema
+		if err := node.Content[i+1].Decode(&s); err != nil {
 			return err
 		}
-		*ps = append(*ps, Property{Name: name, Schema: &schema})
+		*ps = append(*ps, property{Name: name, Schema: &s})
 	}
 	return nil
 }

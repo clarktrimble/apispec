@@ -8,11 +8,11 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// OrderedMap tests
+// orderedMap tests
 
 func TestOrderedMapJSONRoundTrip(t *testing.T) {
 
-	m := OrderedMap[int]{
+	m := orderedMap[int]{
 		{Key: "z", Val: 3},
 		{Key: "a", Val: 1},
 		{Key: "m", Val: 2},
@@ -29,7 +29,7 @@ func TestOrderedMapJSONRoundTrip(t *testing.T) {
 		t.Errorf("expected %s, got %s", expected, string(data))
 	}
 
-	var got OrderedMap[int]
+	var got orderedMap[int]
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestOrderedMapJSONRoundTrip(t *testing.T) {
 
 func TestOrderedMapYAMLRoundTrip(t *testing.T) {
 
-	m := OrderedMap[int]{
+	m := orderedMap[int]{
 		{Key: "z", Val: 3},
 		{Key: "a", Val: 1},
 		{Key: "m", Val: 2},
@@ -67,7 +67,7 @@ func TestOrderedMapYAMLRoundTrip(t *testing.T) {
 		}
 	}
 
-	var got OrderedMap[int]
+	var got orderedMap[int]
 	if err := yaml.Unmarshal(data, &got); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestOrderedMapYAMLRoundTrip(t *testing.T) {
 
 func TestOrderedMapGetAndHas(t *testing.T) {
 
-	m := OrderedMap[int]{
+	m := orderedMap[int]{
 		{Key: "a", Val: 1},
 		{Key: "b", Val: 2},
 	}
@@ -106,7 +106,7 @@ func TestOrderedMapGetAndHas(t *testing.T) {
 
 func TestOrderedMapEmpty(t *testing.T) {
 
-	var m OrderedMap[int]
+	var m orderedMap[int]
 
 	data, err := json.Marshal(m)
 	if err != nil {
@@ -117,13 +117,13 @@ func TestOrderedMapEmpty(t *testing.T) {
 	}
 }
 
-// Properties tests
+// properties tests
 
 func TestPropertiesJSONRoundTrip(t *testing.T) {
 
-	ps := Properties{
-		{Name: "z_field", Schema: &Schema{Type: "string"}},
-		{Name: "a_field", Schema: &Schema{Type: "integer"}},
+	ps := properties{
+		{Name: "z_field", Schema: &schema{Type: "string"}},
+		{Name: "a_field", Schema: &schema{Type: "integer"}},
 	}
 
 	data, err := json.Marshal(ps)
@@ -137,7 +137,7 @@ func TestPropertiesJSONRoundTrip(t *testing.T) {
 		t.Errorf("expected %s, got %s", expected, string(data))
 	}
 
-	var got Properties
+	var got properties
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
@@ -155,9 +155,9 @@ func TestPropertiesJSONRoundTrip(t *testing.T) {
 
 func TestPropertiesYAMLRoundTrip(t *testing.T) {
 
-	ps := Properties{
-		{Name: "z_field", Schema: &Schema{Type: "string"}},
-		{Name: "a_field", Schema: &Schema{Type: "integer"}},
+	ps := properties{
+		{Name: "z_field", Schema: &schema{Type: "string"}},
+		{Name: "a_field", Schema: &schema{Type: "integer"}},
 	}
 
 	data, err := yaml.Marshal(ps)
@@ -176,7 +176,7 @@ func TestPropertiesYAMLRoundTrip(t *testing.T) {
 		t.Errorf("z_field should appear before a_field in output:\n%s", output)
 	}
 
-	var got Properties
+	var got properties
 	if err := yaml.Unmarshal(data, &got); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
@@ -194,9 +194,9 @@ func TestPropertiesYAMLRoundTrip(t *testing.T) {
 
 func TestPropertiesGet(t *testing.T) {
 
-	ps := Properties{
-		{Name: "id", Schema: &Schema{Type: "string"}},
-		{Name: "count", Schema: &Schema{Type: "integer"}},
+	ps := properties{
+		{Name: "id", Schema: &schema{Type: "string"}},
+		{Name: "count", Schema: &schema{Type: "integer"}},
 	}
 
 	if s := ps.Get("id"); s == nil || s.Type != "string" {
@@ -209,7 +209,7 @@ func TestPropertiesGet(t *testing.T) {
 
 func TestPropertiesEmpty(t *testing.T) {
 
-	var ps Properties
+	var ps properties
 
 	data, err := json.Marshal(ps)
 	if err != nil {
