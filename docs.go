@@ -34,7 +34,10 @@ func (df *docFinder) typeDoc(obj types.Object) string {
 				continue
 			}
 			for _, spec := range gd.Specs {
-				ts := spec.(*ast.TypeSpec)
+				ts, ok := spec.(*ast.TypeSpec)
+				if !ok {
+					continue
+				}
 				if ts.Name.Pos() == pos {
 					if ts.Doc != nil {
 						return clean(ts.Doc.Text())

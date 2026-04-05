@@ -1,9 +1,0 @@
-title: Duplicate Paths Test
-description:
-  - Tests that duplicate paths are detected.
-
-specs:
-  - package: github.com/clarktrimble/apispec/static/fixture
-    types: [Widget]
-  - package: github.com/clarktrimble/apispec/static/fixture
-    types: [Widget]

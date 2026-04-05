@@ -1,5 +1,7 @@
 # apispec — Composable OpenAPI Spec Builder
 
+Todo: rewrite from scratch saving any valuable tidbits from here or the junked static readme
+
 100% vibe coded and it shows!
 
 Todo: move testdata to test/data and fuss over quality and organization

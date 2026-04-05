@@ -4,9 +4,9 @@ description:
   - Exercises the full static generation pipeline.
 
 config:
-  package: github.com/clarktrimble/apispec/fixture
+  package: github.com/clarktrimble/apispec/testdata/fixture
   type: ServerConfig
 
 specs:
-  - package: github.com/clarktrimble/apispec/fixture
+  - package: github.com/clarktrimble/apispec/testdata/fixture
     types: [Widget]

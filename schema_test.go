@@ -116,7 +116,10 @@ func TestResolveAll(t *testing.T) {
 		t.Fatal("Operation type not found")
 	}
 
-	named := obj.Type().(*types.Named)
+	named, ok := obj.Type().(*types.Named)
+	if !ok {
+		t.Fatal("Operation is not a named type")
+	}
 	schemas := map[string]schemaEntry{}
 	schema, discovered := schemaFrom(obj.Type(), nil)
 	schemas["Operation"] = schemaEntry{schema: schema, source: named}
@@ -141,7 +144,7 @@ func TestResolveAll(t *testing.T) {
 
 func TestConfigSchema(t *testing.T) {
 
-	pkg := loadTestPackage(t, "github.com/clarktrimble/apispec/fixture")
+	pkg := loadTestPackage(t, "github.com/clarktrimble/apispec/testdata/fixture")
 
 	obj := pkg.Types.Scope().Lookup("ServerConfig")
 	if obj == nil {
@@ -185,7 +188,7 @@ func TestConfigSchema(t *testing.T) {
 func TestConfigSchemaInlinesNested(t *testing.T) {
 
 	// Widget has a *Part field — in config mode it should be inlined, not $ref
-	pkg := loadTestPackage(t, "github.com/clarktrimble/apispec/fixture")
+	pkg := loadTestPackage(t, "github.com/clarktrimble/apispec/testdata/fixture")
 
 	obj := pkg.Types.Scope().Lookup("Widget")
 	if obj == nil {
@@ -211,7 +214,7 @@ func TestConfigSchemaInlinesNested(t *testing.T) {
 
 func TestDocComments(t *testing.T) {
 
-	pkg := loadTestPackage(t, "github.com/clarktrimble/apispec/fixture")
+	pkg := loadTestPackage(t, "github.com/clarktrimble/apispec/testdata/fixture")
 	df := newDocFinder(map[string]*packages.Package{
 		pkg.PkgPath: pkg,
 	})

@@ -3,6 +3,7 @@ package apispec
 import (
 	"go/types"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -56,27 +57,8 @@ func Generate(cfgPath, outPath string) error {
 			doc.Paths = append(doc.Paths, kv)
 		}
 
-		for _, typeName := range spec.Types {
-			obj := pkg.Types.Scope().Lookup(typeName)
-			if obj == nil {
-				return errors.Errorf("type %s not found in %s", typeName, spec.Package)
-			}
-			named, ok := obj.Type().(*types.Named)
-			if !ok {
-				return errors.Errorf("type %s in %s is not a named type", typeName, spec.Package)
-			}
-			if existing, exists := schemas[typeName]; exists {
-				if existing.source != named {
-					return errors.Errorf("schema name collision: %q from %s and %s",
-						typeName, existing.source.Obj().Pkg().Path(), spec.Package)
-				}
-				continue
-			}
-			schema, discovered := schemaFrom(obj.Type(), df)
-			schemas[typeName] = schemaEntry{schema: schema, source: named}
-			if err := resolveAll(schemas, discovered, df); err != nil {
-				return err
-			}
+		if err := resolveSpecTypes(spec, pkg, schemas, df); err != nil {
+			return err
 		}
 	}
 
@@ -114,7 +96,7 @@ func Generate(cfgPath, outPath string) error {
 		return errors.Wrap(err, "marshaling document")
 	}
 
-	return os.WriteFile(outPath, data, 0o644)
+	return os.WriteFile(outPath, data, 0o644) //nolint:gosec // spec file should be world-readable
 }
 
 func loadConfig(path string) (Config, error) {
@@ -159,4 +141,62 @@ func loadPackages(cfg Config) (map[string]*packages.Package, error) {
 	}
 
 	return result, nil
+}
+
+func resolveSpecTypes(spec Spec, pkg *packages.Package, schemas map[string]schemaEntry, df *docFinder) error {
+
+	for _, typeName := range spec.Types {
+		obj := pkg.Types.Scope().Lookup(typeName)
+		if obj == nil {
+			return errors.Errorf("type %s not found in %s", typeName, spec.Package)
+		}
+		named, ok := obj.Type().(*types.Named)
+		if !ok {
+			return errors.Errorf("type %s in %s is not a named type", typeName, spec.Package)
+		}
+		if existing, exists := schemas[typeName]; exists {
+			if existing.source != named {
+				return errors.Errorf("schema name collision: %q from %s and %s",
+					typeName, existing.source.Obj().Pkg().Path(), spec.Package)
+			}
+			continue
+		}
+		schema, discovered := schemaFrom(obj.Type(), df)
+		schemas[typeName] = schemaEntry{schema: schema, source: named}
+		if err := resolveAll(schemas, discovered, df); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+type fragment struct {
+	Paths Paths `yaml:"paths"`
+}
+
+// loadFragment finds and parses paths.yaml in a package's directory.
+func loadFragment(pkg *packages.Package) (Paths, error) {
+
+	if len(pkg.GoFiles) == 0 {
+		return nil, errors.Errorf("package %s has no Go files", pkg.PkgPath)
+	}
+
+	dir := filepath.Dir(pkg.GoFiles[0])
+	path := filepath.Join(dir, "paths.yaml")
+
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "reading %s", path)
+	}
+
+	var f fragment
+	if err := yaml.Unmarshal(data, &f); err != nil {
+		return nil, errors.Wrapf(err, "parsing %s", path)
+	}
+
+	return f.Paths, nil
 }

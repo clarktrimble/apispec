@@ -1,4 +1,4 @@
-// Package fixture provides test types for static schema generation.
+// Package fixture provides test types for schema generation.
 package fixture
 
 import "time"
@@ -12,8 +12,10 @@ type ServerConfig struct {
 
 // Widget represents a mechanical component in the inventory.
 type Widget struct {
-	Name  string `json:"name" desc:"widget name" example:"sprocket"`
-	Count int    `json:"count" desc:"number of widgets"`
+	Name      string    `json:"name" desc:"widget name" example:"sprocket"`
+	Count     int       `json:"count" desc:"number of widgets"`
+	Weight    float64   `json:"weight" desc:"weight in grams"`
+	CreatedAt time.Time `json:"created_at" desc:"when the widget was created"`
 	// Associated part, if any.
 	Part *Part `json:"part,omitempty"`
 }

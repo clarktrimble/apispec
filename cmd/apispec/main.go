@@ -33,7 +33,7 @@ func main() {
 
 	switch os.Args[1] {
 	case "gen":
-		genCmd.Parse(os.Args[2:])
+		_ = genCmd.Parse(os.Args[2:])
 
 		err := apispec.Generate(*cfgPath, *outPath)
 		if err != nil {
