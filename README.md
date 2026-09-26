@@ -2,6 +2,7 @@
 
 Generates OpenAPI 3.0.3 documents from Go source at build time.
 
+-- begin dup
 The tool is driven by a yaml file that specifies a title, description, packages,
 and optionally types from them. From this input yaml is assembled as follows:
 
@@ -15,6 +16,14 @@ be considered.
 
 So, we can assemble an OpenAPI spec from our dependencies, with those contributions
 split into path yaml and schema from code.
+=======
+Todo: re-written with alert -- where did that go??
+
+A YAML config file points at packages — apispec reads their types for schema
+generation and their `paths.yaml` files for route definitions, then assembles
+a complete spec. Struct tags and doc comments drive the output; no hand-written
+schemas needed.
+-- end dup
 
 The generated spec includes two placeholders for runtime substitution:
 - `${RELEASE}` — to be replaced with the git tag or branch info

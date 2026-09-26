@@ -11,15 +11,23 @@ touches a lot of call sites.
 Still map[string]*Schema — renders in random order at the bottom of
 the page. Less visible than paths/responses but still nondeterministic.
 
+Is this true??  Pretty sure we're alphanum sorted for schema.
+
 ## OpenAPI validation
 
 No validation step yet. Could validate the generated document against
 the OpenAPI 3.0 spec — either offline via a linter or as a test assertion.
 
+Yeah! Lets validate.
+
 ## Boiler Docs
 
 Mention "touch openapi.yaml" there?
 
+Well mentioned there, done!!
+
 ## Consumers and Contributors
 
 Update everything this thing is baked!!
+
+Boiler, webhook, and zone change, what else??
