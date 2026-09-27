@@ -1,14 +1,14 @@
 module github.com/clarktrimble/apispec
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/pkg/errors v0.9.1
-	go.yaml.in/yaml/v3 v3.0.4
-	golang.org/x/tools v0.43.0
+	go.yaml.in/yaml/v3 v3.0.5
+	golang.org/x/tools v0.50.0
 )
 
 require (
-	golang.org/x/mod v0.34.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/mod v0.41.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
 )

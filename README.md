@@ -16,7 +16,7 @@ be considered.
 
 So, we can assemble an OpenAPI spec from our dependencies, with those contributions
 split into path yaml and schema from code.
-=======
+
 Todo: re-written with alert -- where did that go??
 
 A YAML config file points at packages — apispec reads their types for schema
