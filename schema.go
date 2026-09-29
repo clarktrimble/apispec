@@ -50,7 +50,7 @@ func schemaFrom(t types.Type, df *docFinder) (*schema, deps) {
 
 	// For named struct types, generate the full schema directly
 	// rather than emitting a $ref (which is for nested fields).
-	if named, ok := t.(*types.Named); ok {
+	if named, ok := types.Unalias(t).(*types.Named); ok {
 		if st, ok := named.Underlying().(*types.Struct); ok {
 			schema := structSchema(st, named.Obj(), d, df)
 			// type-level doc comment as schema description
@@ -67,6 +67,13 @@ func schemaFrom(t types.Type, df *docFinder) (*schema, deps) {
 func typeToSchema(t types.Type, d deps, df *docFinder) *schema {
 
 	switch t := t.(type) {
+	case *types.Alias:
+		// check the alias itself first (json.RawMessage is an alias under jsonv2)
+		obj := t.Obj()
+		if s, ok := wellKnownSchema(obj.Pkg(), obj.Name()); ok {
+			return s
+		}
+		return typeToSchema(types.Unalias(t), d, df)
 	case *types.Named:
 		return namedSchema(t, d, df)
 	case *types.Pointer:
@@ -186,7 +193,7 @@ func basicSchema(t *types.Basic) *schema {
 }
 
 func isPointer(t types.Type) bool {
-	_, ok := t.(*types.Pointer)
+	_, ok := types.Unalias(t).(*types.Pointer)
 	return ok
 }
 
@@ -200,6 +207,8 @@ func wellKnownSchema(pkg *types.Package, name string) (*schema, bool) {
 	case path == "time" && name == "Duration":
 		return &schema{Type: "string"}, true
 	case path == "encoding/json" && name == "RawMessage":
+		return &schema{Type: "object", Description: "raw JSON"}, true
+	case path == "encoding/json/jsontext" && name == "Value":
 		return &schema{Type: "object", Description: "raw JSON"}, true
 	}
 	return nil, false

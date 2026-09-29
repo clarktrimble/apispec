@@ -1,7 +1,10 @@
 // Package fixture provides test types for schema generation.
 package fixture
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type ServerConfig struct {
 	Version string        `json:"version" ignored:"true"`
@@ -25,4 +28,18 @@ type Part struct {
 	ID string `json:"id" example:"p-123"`
 	// Human-readable label for the part.
 	Label string `json:"label"`
+}
+
+// Stamp aliases a well-known type.
+type Stamp = time.Time
+
+// PartAlias aliases a struct type.
+type PartAlias = Part
+
+// Gadget exercises type aliases.
+type Gadget struct {
+	Raw   json.RawMessage `json:"raw"`
+	Stamp Stamp           `json:"stamp"`
+	Part  PartAlias       `json:"part"`
+	Opt   *PartAlias      `json:"opt"`
 }

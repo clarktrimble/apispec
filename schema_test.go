@@ -282,3 +282,60 @@ func depsNames(d deps) []string {
 	}
 	return names
 }
+
+func TestAliases(t *testing.T) {
+
+	pkg := loadTestPackage(t, "github.com/clarktrimble/apispec/testdata/fixture")
+
+	obj := pkg.Types.Scope().Lookup("Gadget")
+	if obj == nil {
+		t.Fatal("Gadget type not found")
+	}
+
+	s, deps := schemaFrom(obj.Type(), nil)
+
+	// json.RawMessage: named type pre-1.27, alias to jsontext.Value under jsonv2
+	raw := s.Properties.Get("raw")
+	if raw == nil {
+		t.Fatal("missing raw property")
+	}
+	if raw.Type != "object" || raw.Description != "raw JSON" {
+		t.Errorf("expected raw JSON object, got %q %q", raw.Type, raw.Description)
+	}
+
+	// alias to well-known type
+	stamp := s.Properties.Get("stamp")
+	if stamp == nil {
+		t.Fatal("missing stamp property")
+	}
+	if stamp.Type != "string" || stamp.Format != "date-time" {
+		t.Errorf("expected date-time string, got %q %q", stamp.Type, stamp.Format)
+	}
+
+	// alias to struct: $ref to the aliased type
+	part := s.Properties.Get("part")
+	if part == nil {
+		t.Fatal("missing part property")
+	}
+	if part.Ref != "#/components/schemas/Part" {
+		t.Errorf("expected ref to Part, got %q", part.Ref)
+	}
+	if _, ok := deps["Part"]; !ok || len(deps) != 1 {
+		t.Errorf("expected deps [Part], got %v", depsNames(deps))
+	}
+
+	// pointer to alias is not required
+	if len(s.Required) != 3 {
+		t.Errorf("expected 3 required, got %v", s.Required)
+	}
+
+	// top-level alias to struct resolves to the full schema
+	aliasObj := pkg.Types.Scope().Lookup("PartAlias")
+	if aliasObj == nil {
+		t.Fatal("PartAlias type not found")
+	}
+	as, _ := schemaFrom(aliasObj.Type(), nil)
+	if as.Properties.Get("label") == nil {
+		t.Errorf("expected PartAlias to resolve to Part's properties")
+	}
+}
