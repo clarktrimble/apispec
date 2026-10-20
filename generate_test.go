@@ -194,6 +194,101 @@ func TestGenerateComposition(t *testing.T) {
 	}
 }
 
+func TestGenerateRequestBody(t *testing.T) {
+
+	outPath := filepath.Join(t.TempDir(), "openapi.yaml")
+	if err := Generate("testdata/apispec.yaml", outPath); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	t.Logf("output:\n%s", data)
+
+	var generated document
+	if err := yaml.Unmarshal(data, &generated); err != nil {
+		t.Fatalf("parsing output: %v", err)
+	}
+	jsonData, err := json.Marshal(generated)
+	if err != nil {
+		t.Fatalf("marshaling JSON: %v", err)
+	}
+
+	for _, tc := range []struct {
+		name      string
+		data      []byte
+		unmarshal func([]byte, any) error
+	}{
+		{"YAML", data, yaml.Unmarshal},
+		{"JSON", jsonData, json.Unmarshal},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Inspect parsed output independently of the model, including omitted keys.
+			var output map[string]any
+			if err := tc.unmarshal(tc.data, &output); err != nil {
+				t.Fatalf("parsing document: %v", err)
+			}
+			objectAt := func(keys ...string) map[string]any {
+				t.Helper()
+				object := output
+				for _, key := range keys {
+					next, ok := object[key].(map[string]any)
+					if !ok {
+						t.Fatalf("expected object at %v, got %T for %s", keys, object[key], key)
+					}
+					object = next
+				}
+				return object
+			}
+
+			body := objectAt("paths", "/events", "post", "requestBody")
+			const description = "One event object per line.\nBlank lines are ignored.\n"
+			if body["description"] != description {
+				t.Errorf("description: got %q, want %q", body["description"], description)
+			}
+			if body["required"] != true {
+				t.Errorf("required: got %v, want true", body["required"])
+			}
+			content := objectAt("paths", "/events", "post", "requestBody", "content")
+			if len(content) != 2 {
+				t.Errorf("expected 2 content types, got %d", len(content))
+			}
+
+			ndjson := objectAt("paths", "/events", "post", "requestBody", "content", "application/x-ndjson")
+			const example = "{\"event_type\":\"observations\",\"payload\":{\"id\":\"one\"}}\n" +
+				"{\"event_type\":\"observations\",\"payload\":{\"id\":\"two\"}}\n"
+			if got, ok := ndjson["example"].(string); !ok || got != example {
+				t.Errorf("NDJSON example: got %#v, want string %q", ndjson["example"], example)
+			}
+			if !reflect.DeepEqual(ndjson["schema"], map[string]any{"type": "string"}) {
+				t.Errorf("NDJSON schema changed: %#v", ndjson["schema"])
+			}
+
+			structured := objectAt("paths", "/events", "post", "requestBody", "content", "application/json")
+			wantExample := map[string]any{
+				"event_type": "observations",
+				"payload":    map[string]any{"id": "one"},
+			}
+			if !reflect.DeepEqual(structured["example"], wantExample) {
+				t.Errorf("structured example: got %#v, want %#v", structured["example"], wantExample)
+			}
+			if !reflect.DeepEqual(structured["schema"], map[string]any{"type": "object"}) {
+				t.Errorf("JSON schema changed: %#v", structured["schema"])
+			}
+
+			plain := objectAt("paths", "/widgets", "post", "requestBody")
+			if _, exists := plain["description"]; exists {
+				t.Error("absent request-body description should be omitted")
+			}
+			media := objectAt("paths", "/widgets", "post", "requestBody", "content", "application/json")
+			if _, exists := media["example"]; exists {
+				t.Error("absent media-type example should be omitted")
+			}
+		})
+	}
+}
+
 func TestGenerateNameCollision(t *testing.T) {
 
 	outPath := filepath.Join(t.TempDir(), "openapi.yaml")

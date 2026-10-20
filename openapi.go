@@ -94,8 +94,9 @@ type parameter struct {
 
 // requestBody describes a request body.
 type requestBody struct {
-	Required bool    `json:"required,omitempty" yaml:"required,omitempty"`
-	Content  content `json:"content" yaml:"content"`
+	Required    bool    `json:"required,omitempty" yaml:"required,omitempty"`
+	Description string  `json:"description,omitempty" yaml:"description,omitempty"`
+	Content     content `json:"content" yaml:"content"`
 }
 
 // content maps media types to their schema.
@@ -103,7 +104,8 @@ type content map[string]*mediaType
 
 // mediaType describes a media type with a schema.
 type mediaType struct {
-	Schema *schema `json:"schema" yaml:"schema"`
+	Schema  *schema `json:"schema" yaml:"schema"`
+	Example any     `json:"example,omitempty" yaml:"example,omitempty"`
 }
 
 // responses is an ordered collection of HTTP status codes to their response definition.

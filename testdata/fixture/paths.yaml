@@ -4,6 +4,17 @@ tags:
 
 paths:
   /widgets:
+    post:
+      summary: Create widget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Widget'
+      responses:
+        '201':
+          description: Widget created
     get:
       summary: List widgets
       operationId: listWidgets
@@ -19,6 +30,30 @@ paths:
                 items:
                   $ref: '#/components/schemas/Widget'
   /events:
+    post:
+      summary: Submit events
+      requestBody:
+        required: true
+        description: |
+          One event object per line.
+          Blank lines are ignored.
+        content:
+          application/x-ndjson:
+            schema:
+              type: string
+            example: |
+              {"event_type":"observations","payload":{"id":"one"}}
+              {"event_type":"observations","payload":{"id":"two"}}
+          application/json:
+            schema:
+              type: object
+            example:
+              event_type: observations
+              payload:
+                id: one
+      responses:
+        '202':
+          description: Events accepted
     get:
       summary: List events
       operationId: listEvents
