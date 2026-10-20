@@ -9,4 +9,4 @@ config:
 
 specs:
   - package: github.com/clarktrimble/apispec/testdata/fixture
-    types: [Widget]
+    types: [Widget, EventEnvelope, Status, Audit, InventoryAudit, Finding, Observation]

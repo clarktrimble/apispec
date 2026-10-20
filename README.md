@@ -116,6 +116,38 @@ paths:
 Fragments are merged in config file order.
 Referenced types should be included using the package that defines them.
 
+### Hand-Written Composition
+
+Use `allOf` and `oneOf` in `paths.yaml` to compose generated schema references
+with hand-written constraints. For example, a response's `content.application/json.schema`
+can contain:
+
+```yaml
+type: object
+properties:
+  events:
+    type: array
+    items:
+      allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            event:
+              oneOf:
+                - $ref: '#/components/schemas/Status'
+                - $ref: '#/components/schemas/Audit'
+```
+
+`allOf` requires all listed schemas to apply; it adds constraints rather than
+overriding the referenced schema. `oneOf` requires exactly one alternative to
+match, so overlapping alternatives may not be appropriate.
+
+These fields are passed through from YAML, preserving branches and reference
+order. They are not inferred from Go `any` or interfaces. Include referenced
+Go types through the existing schema-generation inputs (`specs[].package` and
+`specs[].types`); YAML references do not trigger type discovery. For this example,
+list `EventEnvelope`, `Status`, and `Audit` in the contributing package's `types`.
+
 ## Schema Generation
 
 Two modes handle different struct tag conventions.

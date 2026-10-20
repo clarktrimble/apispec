@@ -18,6 +18,32 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Widget'
+  /events:
+    get:
+      summary: List events
+      operationId: listEvents
+      responses:
+        '200':
+          description: Events retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/EventEnvelope'
+                        - type: object
+                          properties:
+                            event:
+                              oneOf:
+                                - $ref: '#/components/schemas/Status'
+                                - $ref: '#/components/schemas/Audit'
+                                - $ref: '#/components/schemas/InventoryAudit'
+                                - $ref: '#/components/schemas/Finding'
+                                - $ref: '#/components/schemas/Observation'
   /widgets/{id}:
     get:
       summary: Get widget

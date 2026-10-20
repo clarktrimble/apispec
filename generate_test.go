@@ -1,8 +1,10 @@
 package apispec
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -37,8 +39,8 @@ func TestGenerate(t *testing.T) {
 	}
 
 	// paths from fragment
-	if len(doc.Paths) != 2 {
-		t.Errorf("expected 2 paths, got %d", len(doc.Paths))
+	if len(doc.Paths) != 3 {
+		t.Errorf("expected 3 paths, got %d", len(doc.Paths))
 	}
 	if doc.Paths.Get("/widgets") == nil {
 		t.Error("missing /widgets path")
@@ -81,6 +83,115 @@ func TestGenerate(t *testing.T) {
 	}
 
 	t.Logf("output:\n%s", string(data))
+}
+
+func TestGenerateComposition(t *testing.T) {
+
+	outPath := filepath.Join(t.TempDir(), "openapi.yaml")
+	if err := Generate("testdata/apispec.yaml", outPath); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	t.Logf("output:\n%s", data)
+
+	var generated document
+	if err := yaml.Unmarshal(data, &generated); err != nil {
+		t.Fatalf("parsing output: %v", err)
+	}
+
+	want := &schema{
+		Type: "object",
+		Properties: properties{{Name: "events", Schema: &schema{
+			Type: "array",
+			Items: &schema{AllOf: []*schema{
+				ref("EventEnvelope"),
+				{
+					Type: "object",
+					Properties: properties{{Name: "event", Schema: &schema{
+						OneOf: []*schema{
+							ref("Status"),
+							ref("Audit"),
+							ref("InventoryAudit"),
+							ref("Finding"),
+							ref("Observation"),
+						},
+					}}},
+				},
+			}},
+		}}},
+	}
+
+	// Generate writes YAML; JSON is also supported by the document model.
+	jsonData, err := json.Marshal(generated)
+	if err != nil {
+		t.Fatalf("marshaling JSON: %v", err)
+	}
+	for _, tc := range []struct {
+		name      string
+		data      []byte
+		unmarshal func([]byte, any) error
+		marshal   func(any) ([]byte, error)
+	}{
+		{"YAML", data, yaml.Unmarshal, yaml.Marshal},
+		{"JSON", jsonData, json.Unmarshal, json.Marshal},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var doc document
+			if err := tc.unmarshal(tc.data, &doc); err != nil {
+				t.Fatalf("unmarshaling document: %v", err)
+			}
+			path := doc.Paths.Get("/events")
+			if path == nil || path.Get == nil {
+				t.Fatal("missing GET /events")
+			}
+			response := path.Get.Responses.Get("200")
+			if response == nil || response.Content["application/json"] == nil {
+				t.Fatal("missing JSON response")
+			}
+			if got := response.Content["application/json"].Schema; !reflect.DeepEqual(got, want) {
+				t.Errorf("response composition changed: got %#v, want %#v", got, want)
+			}
+
+			if doc.Components == nil {
+				t.Fatal("missing components")
+			}
+			for name, field := range map[string]string{
+				"EventEnvelope":  "event",
+				"Status":         "status",
+				"Audit":          "action",
+				"InventoryAudit": "changes",
+				"Finding":        "finding",
+				"Observation":    "observation",
+			} {
+				component := doc.Components.Schemas[name]
+				if component == nil || component.Type != "object" || component.Properties.Get(field) == nil {
+					t.Errorf("missing generated object schema or property: %s.%s", name, field)
+				}
+			}
+			// Composition is not inferred from the envelope's Go any field.
+			envelope := doc.Components.Schemas["EventEnvelope"]
+			if envelope == nil || !reflect.DeepEqual(envelope.Properties.Get("event"), &schema{Type: "object"}) {
+				t.Error("EventEnvelope.event should retain its generated object schema")
+			}
+
+			// Neither generated components nor the plain response gain empty fields.
+			for name, value := range map[string]any{
+				"components": doc.Components,
+				"widgets":    doc.Paths.Get("/widgets"),
+			} {
+				plain, err := tc.marshal(value)
+				if err != nil {
+					t.Fatalf("marshaling %s: %v", name, err)
+				}
+				if strings.Contains(string(plain), "allOf") || strings.Contains(string(plain), "oneOf") {
+					t.Errorf("unexpected composition fields in %s:\n%s", name, plain)
+				}
+			}
+		})
+	}
 }
 
 func TestGenerateNameCollision(t *testing.T) {

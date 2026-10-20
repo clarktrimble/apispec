@@ -74,6 +74,8 @@ type schema struct {
 	Description          string     `json:"description,omitempty" yaml:"description,omitempty"`
 	Properties           properties `json:"properties,omitempty" yaml:"properties,omitempty"`
 	Items                *schema    `json:"items,omitempty" yaml:"items,omitempty"`
+	AllOf                []*schema  `json:"allOf,omitempty" yaml:"allOf,omitempty"`
+	OneOf                []*schema  `json:"oneOf,omitempty" yaml:"oneOf,omitempty"`
 	Required             []string   `json:"required,omitempty" yaml:"required,omitempty"`
 	Enum                 []any      `json:"enum,omitempty" yaml:"enum,omitempty"`
 	Example              any        `json:"example,omitempty" yaml:"example,omitempty"`

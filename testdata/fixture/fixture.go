@@ -30,6 +30,32 @@ type Part struct {
 	Label string `json:"label"`
 }
 
+// EventEnvelope carries an event whose shape is constrained by the path fragment.
+type EventEnvelope struct {
+	ID    string `json:"id"`
+	Event any    `json:"event"`
+}
+
+type Status struct {
+	Status string `json:"status"`
+}
+
+type Audit struct {
+	Action string `json:"action"`
+}
+
+type InventoryAudit struct {
+	Changes []string `json:"changes"`
+}
+
+type Finding struct {
+	Finding string `json:"finding"`
+}
+
+type Observation struct {
+	Observation string `json:"observation"`
+}
+
 // Stamp aliases a well-known type.
 type Stamp = time.Time
 
